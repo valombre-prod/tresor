@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chasse au Trésor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Creepster&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#150726; --bg2:#2a0f45; --surface:#3a1560; --accent:#ff7a18;
+    --accent2:#7cf03d; --text:#ffe9d6; --muted:#b79ad0; --map:#e8d6a8; --mapink:#3a2a12;
+    --display:'Fredoka', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:'Nunito', system-ui, -apple-system, sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(120% 80% at 50% -10%, var(--bg2), transparent 60%),
+      var(--bg);
+    min-height:100dvh;
+    -webkit-text-size-adjust:100%;
+    line-height:1.45;
+  }
+  #app{max-width:560px;margin:0 auto;padding:22px 18px 60px;min-height:100dvh}
+  h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.05;margin:0}
+  h1{font-size:clamp(30px,9vw,46px)}
+  h2{font-size:clamp(22px,6vw,30px)}
+  .title-spooky[data-theme="halloween"]{font-family:'Creepster',var(--display);letter-spacing:1px}
+  p{margin:.5em 0}
+  .muted{color:var(--muted)}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+    background:var(--accent);color:#1a0b03;font-weight:800;font-size:17px;
+    padding:15px 20px;border-radius:16px;width:100%;
+    box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .06s, box-shadow .06s;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
+  .btn.secondary{background:var(--surface);color:var(--text);box-shadow:0 6px 0 rgba(0,0,0,.35)}
+  .btn.ghost{background:transparent;color:var(--muted);box-shadow:none;font-weight:700;font-size:15px;padding:10px}
+  .btn.small{font-size:14px;padding:10px 14px;width:auto;border-radius:12px}
+  .btn.accent2{background:var(--accent2);color:#0a2107}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--surface);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  label.field{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+  label.field .hint{font-weight:600;color:var(--muted);font-size:12px;display:block;margin-top:2px}
+  input,select,textarea{
+    width:100%;font-family:inherit;font-size:16px;color:var(--text);
+    background:rgba(0,0,0,.22);border:2px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:12px 13px;
+  }
+  input:focus,select,textarea:focus{outline:none;border-color:var(--accent)}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 20px, calc(100% - 14px) 20px;background-size:6px 6px;background-repeat:no-repeat}
+  textarea{resize:vertical;min-height:56px;line-height:1.4}
+  .pill{display:inline-block;background:rgba(0,0,0,.25);color:var(--muted);font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px}
+  .theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+  .theme-chip{background:var(--surface);border:3px solid transparent;border-radius:16px;padding:14px 8px;text-align:center;color:var(--text);font-weight:700;font-size:13px}
+  .theme-chip .emo{font-size:30px;display:block;margin-bottom:4px}
+  .theme-chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,255,255,.06)}
+  .station{background:rgba(0,0,0,.18);border-radius:16px;padding:14px;margin-top:12px;border:1px solid rgba(255,255,255,.06)}
+  .station h3{font-size:18px;display:flex;align-items:center;gap:8px}
+  .num{background:var(--accent);color:#1a0b03;font-family:var(--display);font-weight:700;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:16px;flex:none}
+  .collapsed .station-body{display:none}
+  .kicker{font-family:var(--display);color:var(--accent2);font-weight:600;font-size:15px}
+  /* MAP */
+  .map-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:var(--map);box-shadow:inset 0 0 0 3px rgba(0,0,0,.15), 0 10px 24px rgba(0,0,0,.3);touch-action:manipulation}
+  .map-wrap svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .pins{position:absolute;inset:0}
+  .pin{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-weight:700;
+    width:30px;height:30px;border-radius:50% 50% 50% 2px;background:var(--accent);color:#1a0b03;
+    display:grid;place-items:center;font-size:15px;box-shadow:0 3px 8px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.7);cursor:pointer}
+  .pin.target{background:var(--accent2);color:#0a2107;animation:bob 1s ease-in-out infinite}
+  .pin.treasure{background:#f2c200;color:#3a2a00;border-radius:50%;border-color:#fff;font-size:14px}
+  .pin.ghost{opacity:.35}
+  @keyframes bob{0%,100%{transform:translate(-50%,-100%)}50%{transform:translate(-50%,-118%)}}
+  .map-place-hint{font-size:13px;color:var(--mapink);position:absolute;left:10px;bottom:8px;background:rgba(255,255,255,.6);padding:3px 9px;border-radius:8px;font-weight:700}
+  .stationbtns{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .sbtn{width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,.25);color:var(--text);font-family:var(--display);font-weight:700;border:2px solid transparent}
+  .sbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:#1a0b03}
+  .sbtn.placed{box-shadow:inset 0 0 0 2px var(--accent2)}
+  /* PLAY */
+  .screen{min-height:calc(100dvh - 40px);display:flex;flex-direction:column}
+  .progress{height:10px;background:rgba(0,0,0,.3);border-radius:999px;overflow:hidden;margin:6px 0 18px}
+  .progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+  .big-emoji{font-size:64px;text-align:center;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
+  .ambiance{font-size:19px;line-height:1.5}
+  .enigme{background:rgba(0,0,0,.25);border-left:4px solid var(--accent2);border-radius:0 14px 14px 0;padding:14px 16px;font-size:18px;font-style:italic}
+  .box-cta{font-family:var(--display);font-size:22px;text-align:center;margin:8px 0}
+  .shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+  .spacer{flex:1}
+  .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+  .confetti span{position:absolute;top:-20px;font-size:22px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:.9}}
+  .qr-box{background:#fff;padding:16px;border-radius:16px;display:grid;place-items:center;margin:0 auto;width:fit-content}
+  .qr-box img,.qr-box canvas{display:block}
+  .linkfield{font-size:12px;word-break:break-all;background:rgba(0,0,0,.3);padding:10px;border-radius:10px;color:var(--muted);max-height:70px;overflow:auto}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  a.link{color:var(--accent);font-weight:700}
+  .divider{height:1px;background:rgba(255,255,255,.1);margin:20px 0}
+  #print{display:none}
+  @media print{
+    body{background:#fff;color:#000}
+    #app{display:none}
+    #print{display:block;max-width:none;padding:0;color:#000;font-family:Nunito,sans-serif}
+    .pcard{border:1.5px solid #000;border-radius:10px;padding:12px 14px;margin-bottom:12px;page-break-inside:avoid}
+    .pcard h3{margin:0 0 6px;font-size:17px}
+    .pcard .k{font-weight:800}
+    .pmap{width:100%;max-width:420px;aspect-ratio:4/3;position:relative;border:1.5px solid #000;border-radius:8px;overflow:hidden}
+    .pmap svg{position:absolute;inset:0;width:100%;height:100%}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="print"></div>
+
+<script>
+/* ============================== DONNÉES : THÈMES ============================== */
+const THEMES = {
+  halloween:{
+    nom:"Halloween", emoji:"🎃", spooky:true,
+    pal:{bg:"#150726",bg2:"#2a0f45",surface:"#3a1560",accent:"#ff7a18",accent2:"#7cf03d",text:"#ffe9d6",muted:"#b79ad0",map:"#e8d6c0",mapink:"#3a1a2a"},
+    intro:"Bienvenue, petites créatures... La nuit d'Halloween, des trésors se cachent dans le noir. Pour les trouver, il faudra oser plonger la main dans des boîtes maudites. Prêts à frissonner ?",
+    tresor:"le coffre à bonbons de la sorcière 🍬",
+    boites:[
+      {titre:"Les Yeux de la Sorcière",objet:"des raisins pelés (ou des billes dans de l'eau)",histoire:"Des yeux gluants qui te fixent depuis le fond de la boîte...",enigme:"Je vois tout mais je ne cligne jamais. Attrape-moi sans trembler.",code:"LUNE"},
+      {titre:"La Cervelle du Zombie",objet:"des spaghettis froids (ou un chou-fleur)",histoire:"C'est mou, c'est froid, et ça a l'air de bouger tout seul.",enigme:"Molle comme la peur, froide comme la tombe. Que suis-je ?",code:"BALAI"},
+      {titre:"Les Doigts Coupés",objet:"des mini-saucisses ou des carottes cuites froides",histoire:"On dirait les doigts d'un fantôme oublié...",enigme:"Cinq amis sur ta main, mais ici il n'en reste qu'un.",code:"TOILE"},
+      {titre:"Le Cœur du Vampire",objet:"une grosse tomate pelée",histoire:"Il bat encore, paraît-il. Écoute bien.",enigme:"Rouge et battant, mais sans vie dedans.",code:"CHAT"},
+      {titre:"Les Vers de la Tombe",objet:"des nouilles froides ou des lacets de bonbon",histoire:"Ils grouillent, ils glissent, ils cherchent une main.",enigme:"Sans jambes je rampe, sans yeux je te trouve.",code:"POTION"},
+      {titre:"Les Dents de la Sorcière",objet:"des grains de maïs ou du pop-corn nature",histoire:"Elle les a perdues en croquant un enfant trop sage.",enigme:"Blanches et dures, on mord et on murmure.",code:"CRAPAUD"},
+      {titre:"La Poudre d'Os",objet:"de la farine ou de la semoule",histoire:"Tout ce qu'il reste des aventuriers trop curieux.",enigme:"Blanc comme neige mais né d'un squelette.",code:"OS"},
+      {titre:"Les Toiles d'Araignée",objet:"de la laine ou du coton étiré",histoire:"Colle aux doigts... et l'araignée n'est jamais loin.",enigme:"Je tisse dans le noir un piège pour les mouches.",code:"ARAIGNEE"},
+      {titre:"Le Sang Gelé",objet:"des glaçons",histoire:"Froid à te glacer les os. Ne reste pas trop longtemps.",enigme:"Je brûle de froid et fonds dans ta main.",code:"FANTOME"},
+      {titre:"La Bave du Monstre",objet:"de la gelée ou du gel douche dans un sac",histoire:"Gluant, collant, et ça sent la potion ratée.",enigme:"Je coule sans être de l'eau, je colle sans être de la colle.",code:"SORCIERE"}
+    ]
+  },
+  pirate:{
+    nom:"Pirates", emoji:"🏴‍☠️",
+    pal:{bg:"#0b2b2e",bg2:"#10403f",surface:"#16514d",accent:"#f2b134",accent2:"#e86a4f",text:"#f3e9d2",muted:"#9bc0b8",map:"#e8d6a8",mapink:"#4a3212"},
+    intro:"Ohé, moussaillons ! Le vieux Capitaine a caché son trésor et semé des épreuves sur toute l'île. Plongez la main dans les coffres du navire pour trouver les indices. En avant, toutes voiles dehors !",
+    tresor:"le coffre au trésor du Capitaine 💰",
+    boites:[
+      {titre:"Les Pièces d'Or",objet:"des grosses pièces (ou des rondelles / chocolats dorés)",histoire:"Le butin du Capitaine, froid et lourd au fond du coffre.",enigme:"Ronde et brillante, tout le monde me veut.",code:"TRESOR"},
+      {titre:"Les Dents du Requin",objet:"des coquilles de pâtes ou des petits cailloux",histoire:"Ramassées après une bataille... aïe.",enigme:"Pointu, blanc, je mords sans mains.",code:"REQUIN"},
+      {titre:"L'Œil du Capitaine",objet:"un gros raisin ou une bille",histoire:"Il l'a perdu contre le Kraken. Le voici.",enigme:"Rond et roulant, je vois l'horizon.",code:"BORGNE"},
+      {titre:"Le Sable de l'Île",objet:"de la semoule ou du riz",histoire:"Le sable secret où la croix marque l'endroit.",enigme:"Des millions de grains, une seule plage.",code:"ILE"},
+      {titre:"Le Cordage du Navire",objet:"une corde ou de la laine épaisse",histoire:"Attention aux nœuds du gréement.",enigme:"Je tiens la voile et grimpe au mât.",code:"NOEUD"},
+      {titre:"Les Perles du Fond",objet:"des billes ou des pois chiches secs",histoire:"Arrachées aux huîtres des grands fonds.",enigme:"Née dans une coquille, blanche et fragile.",code:"PERLE"},
+      {titre:"Les Écailles de Sirène",objet:"des paillettes ou des sequins dans un sac",histoire:"Elle a chanté trop fort et en a perdu quelques-unes.",enigme:"Je brille sous l'eau, moitié fille moitié poisson.",code:"SIRENE"},
+      {titre:"La Boussole Cassée",objet:"des petits objets en métal (trombones, clés)",histoire:"Elle n'indique plus le Nord... mais peut-être le trésor.",enigme:"L'aiguille tourne et montre le chemin.",code:"NORD"},
+      {titre:"Le Rhum Gelé",objet:"des glaçons",histoire:"La réserve du Capitaine, oubliée dans la cale.",enigme:"Froid dans la main, il disparaît soudain.",code:"CALE"},
+      {titre:"Les Boyaux du Poisson",objet:"des nouilles froides",histoire:"Le repas de demain, si vous êtes courageux.",enigme:"Glissant et long, je sors de la mer.",code:"POISSON"}
+    ]
+  },
+  espace:{
+    nom:"Espace", emoji:"🚀",
+    pal:{bg:"#070a1f",bg2:"#0f1740",surface:"#17235e",accent:"#38e0ff",accent2:"#ff5cd6",text:"#e6ecff",muted:"#8ea0d8",map:"#0d1330",mapink:"#bcd0ff"},
+    intro:"Astronautes, bienvenue à bord ! Une transmission mystérieuse vient d'une galaxie lointaine. Pour la décoder, glissez la main dans les capsules de l'espace et récupérez les indices. Décollage imminent !",
+    tresor:"le trésor de la station spatiale 🛸",
+    boites:[
+      {titre:"La Bave d'Alien",objet:"de la gelée ou du gel dans un sac",histoire:"Un extraterrestre est passé par là. Ça colle encore.",enigme:"Verte et gluante, je viens d'une autre planète.",code:"ALIEN"},
+      {titre:"La Météorite",objet:"des cailloux ou de la pâte durcie",histoire:"Tombée du ciel il y a mille ans, encore tiède.",enigme:"Je traverse le ciel et finis dans un cratère.",code:"COMETE"},
+      {titre:"Les Antennes du Martien",objet:"des cure-pipes ou des spaghettis",histoire:"Il capte tous les secrets de l'univers.",enigme:"Sur ma tête je capte les étoiles.",code:"MARS"},
+      {titre:"La Poussière d'Étoiles",objet:"de la semoule mélangée à des paillettes",histoire:"Ce qu'il reste d'une étoile qui a explosé.",enigme:"Je scintille la nuit, je forme les galaxies.",code:"NOVA"},
+      {titre:"L'Œil du Cyclope Cosmique",objet:"un gros raisin ou une bille",histoire:"Un seul œil, mais il voit tout l'univers.",enigme:"Rond, unique, je fixe l'infini.",code:"OVNI"},
+      {titre:"Le Tentacule Cosmique",objet:"un gant rempli d'eau ou des nouilles",histoire:"Attention, la créature de l'espace n'aime pas qu'on la touche.",enigme:"Long et mou, je flotte en apesanteur.",code:"PIEUVRE"},
+      {titre:"Les Cristaux de Lune",objet:"des glaçons ou du gros sel",histoire:"Récoltés sur la face cachée de la Lune.",enigme:"Froid et brillant, je viens du satellite blanc.",code:"LUNE"},
+      {titre:"Les Circuits du Robot",objet:"des fils ou des trombones",histoire:"Le robot de bord a perdu quelques pièces.",enigme:"Sans moi, la fusée ne s'allume pas.",code:"ROBOT"},
+      {titre:"Les Œufs Galactiques",objet:"des billes ou des raisins",histoire:"Personne ne sait ce qui va en sortir...",enigme:"Rond et lisse, une surprise à l'intérieur.",code:"ETOILE"},
+      {titre:"Le Carburant Vert",objet:"du gel dans un sac fermé",histoire:"Le réservoir a fui dans la soute.",enigme:"Sans moi, pas de décollage vers les étoiles.",code:"FUSEE"}
+    ]
+  },
+  jungle:{
+    nom:"Jungle", emoji:"🌴",
+    pal:{bg:"#0c2416",bg2:"#123a20",surface:"#184d2a",accent:"#f4a72c",accent2:"#ff6b57",text:"#eef6df",muted:"#9bc48f",map:"#dfe6b8",mapink:"#294217"},
+    intro:"Explorateurs, bienvenue dans la jungle perdue ! Un temple ancien cache un trésor oublié. Pour percer ses secrets, il faudra plonger la main dans les paniers de l'expédition. Suivez la piste... mais attention aux bêtes !",
+    tresor:"l'idole d'or du temple perdu 🗿",
+    boites:[
+      {titre:"Les Insectes Géants",objet:"des coquilles de pâtes ou des raisins secs",histoire:"Ils grouillent dans le noir du panier. Brrr.",enigme:"Six pattes, deux ailes, je bourdonne à ton oreille.",code:"SCARABEE"},
+      {titre:"La Boue du Marais",objet:"de la purée froide ou de la gelée",histoire:"Le marais avale tout ce qui s'y aventure.",enigme:"Molle et collante, j'aspire tes bottes.",code:"MARAIS"},
+      {titre:"Le Serpent",objet:"un collant rempli ou des nouilles",histoire:"Il dort dans le panier... ou peut-être pas.",enigme:"Sans pattes je glisse, sifflant je te surprends.",code:"SERPENT"},
+      {titre:"Les Plumes de l'Oiseau Rare",objet:"des plumes ou du coton",histoire:"L'oiseau interdit du temple les a laissées ici.",enigme:"Légère je vole, colorée je brille.",code:"PERROQUET"},
+      {titre:"L'Écorce Ancienne",objet:"des bâtons ou des bouchons de liège",histoire:"Un morceau de l'arbre gardien, vieux de mille ans.",enigme:"Je protège l'arbre et cache ses secrets.",code:"LIANE"},
+      {titre:"Les Œufs du Crocodile",objet:"des œufs durs froids ou des billes",histoire:"La maman n'est jamais loin. Fais vite.",enigme:"Lisse et ovale, un chasseur y sommeille.",code:"CROCO"},
+      {titre:"La Toile de la Mygale",objet:"de la laine emmêlée",histoire:"La plus grosse araignée du temple a tissé ça.",enigme:"Collante et fine, je tends mon piège entre deux arbres.",code:"MYGALE"},
+      {titre:"Les Champignons Magiques",objet:"des guimauves ou une éponge humide",histoire:"Ils poussent là où la lumière ne va jamais.",enigme:"Sans racine visible, je pousse après la pluie.",code:"TEMPLE"},
+      {titre:"Les Graines Sacrées",objet:"des haricots secs ou des pois chiches",histoire:"Elles ouvrent, dit-on, la porte du trésor.",enigme:"Petite et dure, je deviens géante.",code:"CACAO"},
+      {titre:"Les Vers de Terre",objet:"des nouilles froides",histoire:"Le sol de la jungle est bien vivant...",enigme:"Sous la terre je creuse mon chemin.",code:"RIVIERE"}
+    ]
+  },
+  feerie:{
+    nom:"Féérie", emoji:"✨",
+    pal:{bg:"#2a1a3e",bg2:"#3a2557",surface:"#4a3170",accent:"#ff8fce",accent2:"#7ee0d6",text:"#fdeafd",muted:"#cdb6e6",map:"#f3e3ff",mapink:"#5a3a6e"},
+    intro:"Bienvenue au Royaume Enchanté, petites fées et petits lutins ✨ Une magie ancienne a caché un trésor scintillant. Pour le retrouver, glissez la main dans les coffrets magiques et cueillez les indices. Que la magie vous guide !",
+    tresor:"le coffret à bijoux de la fée 👑",
+    boites:[
+      {titre:"Le Nuage de Fée",objet:"du coton ou des guimauves",histoire:"Doux comme un rêve, léger comme un souffle.",enigme:"Je flotte dans le ciel et deviens tout gris quand je boude.",code:"NUAGE"},
+      {titre:"La Poussière d'Étoiles",objet:"des paillettes ou de la semoule",histoire:"Une pincée et tout devient magique.",enigme:"Je scintille la nuit et exauce les vœux.",code:"ETOILE"},
+      {titre:"Les Cristaux de Licorne",objet:"des glaçons, du gros sel ou des bonbons durs",histoire:"Tombés de sa corne un soir de pleine lune.",enigme:"Brillant et pointu, je pousse sur son front.",code:"LICORNE"},
+      {titre:"Les Pétales Enchantés",objet:"des pétales de fleurs ou des morceaux de tissu doux",histoire:"Ils ne fanent jamais dans le Royaume.",enigme:"Doux et coloré, je parfume le jardin.",code:"ROSE"},
+      {titre:"Les Bulles Magiques",objet:"des billes ou des pois",histoire:"Elles ne se cassent que si on dit un vœu.",enigme:"Ronde et légère, je monte vers le ciel.",code:"BULLE"},
+      {titre:"Le Miel de Dragon",objet:"du miel ou du gel dans un sac",histoire:"Le petit dragon gentil l'a offert à la fée.",enigme:"Doré et collant, un cadeau du dragon.",code:"DRAGON"},
+      {titre:"Le Cœur de Cristal",objet:"un glaçon ou un bonbon transparent",histoire:"Il bat de lumière quand on est gentil.",enigme:"Transparent et froid, je garde l'amour dedans.",code:"CRISTAL"},
+      {titre:"Le Fil d'Or des Lutins",objet:"de la laine dorée ou de la ficelle",histoire:"Les lutins l'ont filé toute la nuit.",enigme:"Fin et brillant, je tisse les habits des rois.",code:"LUTIN"},
+      {titre:"Les Œufs de Phénix",objet:"des billes ou des chocolats",histoire:"Ils renaissent toujours, comme l'oiseau de feu.",enigme:"Rond et chaud, un oiseau de feu m'habite.",code:"PHENIX"},
+      {titre:"La Rosée du Matin",objet:"une éponge humide",histoire:"Recueillie sur les pétales à l'aube.",enigme:"Petite goutte du matin, je brille puis je m'en vais.",code:"MAGIE"}
+    ]
+  }
+};
+
+/* ============================== CARTES STYLISÉES (SVG) ============================== */
+function mapBg(theme){
+  const p = THEMES[theme].pal;
+  const border = `<rect x="2" y="2" width="96" height="96" rx="4" fill="none" stroke="${p.mapink}" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="3 2"/>`;
+  const compass = (x,y,r)=>`
+    <g transform="translate(${x},${y})" fill="${p.mapink}" fill-opacity=".7" stroke="${p.mapink}" stroke-opacity=".7" stroke-width=".3">
+      <circle cx="0" cy="0" r="${r}" fill="none"/>
+      <polygon points="0,${-r} ${r*0.25},0 0,${r} ${-r*0.25},0"/>
+      <polygon points="${-r},0 0,${r*0.25} ${r},0 0,${-r*0.25}" fill-opacity=".35"/>
+      <text x="0" y="${-r-1.2}" font-size="3" text-anchor="middle" font-family="Fredoka" stroke="none">N</text>
+    </g>`;
+  let art="";
+  if(theme==="pirate"){
+    art = `
+      <rect x="0" y="0" width="100" height="100" fill="${p.map}"/>
+      <path d="M0 70 Q 15 66 30 70 T 60 70 T 100 68 L100 100 L0 100 Z" fill="${p.mapink}" fill-opacity=".08"/>
+      <path d="M6 78 q4 -3 8 0 M20 82 q4 -3 8 0 M40 76 q4 -3 8 0 M70 80 q4 -3 8 0" stroke="${p.mapink}" stroke-opacity=".4" fill="none" stroke-width=".5"/>
+      <g transform="translate(20,26)"><path d="M0 6 q3 -10 6 0 q3 8 6 0" stroke="${p.mapink}" stroke-opacity=".5" fill="none" stroke-width=".6"/><rect x="5" y="4" width="2" height="14" fill="${p.mapink}" fill-opacity=".5"/></g>
+      ${compass(80,24,10)}
+    `;
+  } else if(theme==="halloween"){
+    art = `
+      <rect x="0" y="0" width="100" height="100" fill="${p.map}"/>
+      <circle cx="76" cy="22" r="10" fill="${p.accent}" fill-opacity=".5"/>
+      <g fill="${p.mapink}" fill-opacity=".6">
+        <path d="M20 82 h10 v-14 a5 5 0 0 0 -10 0 z"/><path d="M36 84 h9 v-10 a4.5 4.5 0 0 0 -9 0 z"/>
+        <path d="M60 83 h10 v-16 a5 5 0 0 0 -10 0 z"/>
+      </g>
+      <path d="M14 60 v-14 M14 52 l-4 -3 M14 55 l4 -3" stroke="${p.mapink}" stroke-opacity=".5" stroke-width=".7" fill="none"/>
+      <path d="M84 66 q2 -3 4 0 q2 -3 4 0" stroke="${p.mapink}" stroke-opacity=".5" fill="none" stroke-width=".6"/>
+      ${compass(84,80,8)}
+    `;
+  } else if(theme==="espace"){
+    art = `
+      <rect x="0" y="0" width="100" height="100" fill="${p.map}"/>
+      <g fill="#ffffff" fill-opacity=".8">
+        <circle cx="12" cy="14" r=".7"/><circle cx="30" cy="8" r=".5"/><circle cx="52" cy="16" r=".8"/><circle cx="74" cy="10" r=".6"/><circle cx="90" cy="20" r=".7"/>
+        <circle cx="18" cy="40" r=".5"/><circle cx="44" cy="52" r=".7"/><circle cx="66" cy="44" r=".5"/><circle cx="88" cy="56" r=".6"/>
+        <circle cx="10" cy="70" r=".6"/><circle cx="34" cy="84" r=".7"/><circle cx="58" cy="78" r=".5"/><circle cx="82" cy="88" r=".7"/>
+      </g>
+      <circle cx="78" cy="26" r="9" fill="${p.accent}" fill-opacity=".4"/>
+      <ellipse cx="78" cy="26" rx="14" ry="4" fill="none" stroke="${p.accent2}" stroke-opacity=".5" stroke-width=".7" transform="rotate(-18 78 26)"/>
+    `;
+  } else if(theme==="jungle"){
+    art = `
+      <rect x="0" y="0" width="100" height="100" fill="${p.map}"/>
+      <path d="M0 40 Q 30 55 55 44 T 100 50 L100 100 L0 100Z" fill="${p.accent2}" fill-opacity=".12"/>
+      <g fill="${p.mapink}" fill-opacity=".45">
+        <path d="M8 20 q6 -8 12 0 q-6 6 -12 0z"/><path d="M84 16 q7 -9 14 0 q-7 7 -14 0z"/>
+        <path d="M14 74 q6 -8 12 0 q-6 6 -12 0z"/>
+      </g>
+      <path d="M0 62 Q 25 58 50 64 T 100 60" stroke="#4a90d9" stroke-opacity=".4" fill="none" stroke-width="1.4"/>
+      ${compass(82,80,8)}
+    `;
+  } else { // feerie
+    art = `
+      <rect x="0" y="0" width="100" height="100" fill="${p.map}"/>
+      <g fill="${p.accent}" fill-opacity=".18"><circle cx="30" cy="30" r="18"/><circle cx="72" cy="60" r="22"/></g>
+      <g fill="${p.mapink}" fill-opacity=".55">
+        <path d="M70 30 l1.4 3 3 .3 -2.2 2 .7 3.2 -2.9 -1.7 -2.9 1.7 .7 -3.2 -2.2 -2 3 -.3z"/>
+        <path d="M18 62 l1 2 2 .2 -1.5 1.4 .5 2 -2 -1.1 -2 1.1 .5 -2 -1.5 -1.4 2 -.2z"/>
+      </g>
+      <path d="M46 78 v-10 h3 v10 M49 68 l4 -5 4 5 v10 h-8" fill="none" stroke="${p.mapink}" stroke-opacity=".5" stroke-width=".7"/>
+    `;
+  }
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${art}${border}</svg>`;
+}
+function trailSvg(stations, upTo){
+  const pts = stations.map((s,i)=>({s,i})).filter(o=>o.s.pin && (upTo===undefined || o.i<=upTo));
+  if(pts.length<2) return "";
+  const p = pts.map(o=>`${o.s.pin.x} ${o.s.pin.y}`);
+  const d = "M " + p.join(" L ");
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1.1" stroke-dasharray="2.4 2" stroke-linecap="round"/></svg>`;
+}
+
+/* ============================== ÉTAT ============================== */
+const LS='ct_hunt_v1';
+let hunt=null, view='home', activePin=0, qrObj=null;
+let play=null; // {cfg, step, done:[]}
+
+function uid(){return Math.random().toString(36).slice(2,8)}
+function save(){ try{localStorage.setItem(LS,JSON.stringify(hunt))}catch(e){} }
+function load(){ try{const r=localStorage.getItem(LS);return r?JSON.parse(r):null}catch(e){return null} }
+function applyPalette(theme){
+  const p=THEMES[theme].pal, r=document.documentElement.style;
+  Object.entries(p).forEach(([k,v])=>r.setProperty('--'+k,v));
+}
+function norm(s){return (s||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'')}
+
+function newHunt(theme){
+  return {id:uid(),theme,enfant:"",nb:5,age:"moyens",tresor:THEMES[theme].tresor,tresorLieu:"",tresorPin:null,stations:[]};
+}
+function generate(){
+  const lib=[...THEMES[hunt.theme].boites];
+  // mélange
+  for(let i=lib.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[lib[i],lib[j]]=[lib[j],lib[i]]}
+  const n=Math.min(hunt.nb, lib.length);
+  const orig=THEMES[hunt.theme].boites;
+  hunt.stations = lib.slice(0,n).map(b=>({
+    titre:b.titre, objet:b.objet, histoire:b.histoire, enigme:b.enigme, code:b.code,
+    indiceLieu:"", pin:null, _lib:orig.indexOf(b)
+  }));
+  activePin=0; save();
+}
+
+/* ============================== ENCODAGE / LIEN DE JEU ============================== */
+function playConfig(){
+  const orig=(THEMES[hunt.theme]||{}).boites||[];
+  return {
+    id:hunt.id, t:hunt.theme, e:hunt.enfant, a:hunt.age, tr:hunt.tresor, tl:hunt.tresorLieu||'', tp:hunt.tresorPin||null,
+    s:hunt.stations.map(s=>{
+      const li=(typeof s._lib==='number')?s._lib:-1, o=orig[li];
+      const st={i:li, c:s.code||''};
+      if(s.indiceLieu) st.l=s.indiceLieu;
+      if(s.pin) st.p=s.pin;
+      // on n'embarque le texte que s'il a été modifié (sinon on le reconstruit depuis la bibliothèque)
+      if(!o || s.titre!==o.titre) st.t=s.titre;
+      if(!o || s.histoire!==o.histoire) st.h=s.histoire;
+      if(!o || s.enigme!==o.enigme) st.q=s.enigme;
+      return st;
+    })
+  };
+}
+function encodeCfg(cfg){
+  const j=JSON.stringify(cfg);
+  if(window.LZString) return LZString.compressToEncodedURIComponent(j);
+  return 'b'+btoa(unescape(encodeURIComponent(j)));
+}
+function decodeCfg(str){
+  try{
+    let j;
+    if(str[0]==='b') j=decodeURIComponent(escape(atob(str.slice(1))));
+    else j=LZString.decompressFromEncodedURIComponent(str);
+    const c=JSON.parse(j);
+    const orig=(THEMES[c.t]||{}).boites||[];
+    return {id:c.id,theme:c.t,enfant:c.e,age:c.a,tresor:c.tr,tresorLieu:c.tl||'',tresorPin:c.tp||null,
+      stations:c.s.map(s=>{
+        const o=(typeof s.i==='number'&&s.i>=0)?orig[s.i]:null;
+        return {
+          titre: s.t!==undefined ? s.t : (o?o.titre:''),
+          histoire: s.h!==undefined ? s.h : (o?o.histoire:''),
+          enigme: s.q!==undefined ? s.q : (o?o.enigme:''),
+          code: s.c||'', indiceLieu: s.l||'', pin: s.p||null
+        };
+      })};
+  }catch(e){return null}
+}
+function playURL(){
+  const base=location.href.split('#')[0];
+  return base+'#j='+encodeCfg(playConfig());
+}
+// version "longue" (mêmes clés que decodeCfg) pour tester le jeu sans passer par l'encodage
+function huntPlayCfg(){
+  return {id:hunt.id,theme:hunt.theme,enfant:hunt.enfant,age:hunt.age,tresor:hunt.tresor,tresorLieu:hunt.tresorLieu,tresorPin:hunt.tresorPin,
+    stations:hunt.stations.map(s=>({titre:s.titre,histoire:s.histoire,enigme:s.enigme,code:s.code,indiceLieu:s.indiceLieu,pin:s.pin}))};
+}
+
+/* ============================== RENDU : ROUTAGE ============================== */
+const app=()=>document.getElementById('app');
+function render(){
+  if(view==='play'){renderPlay();return}
+  if(view==='admin'){applyPalette(hunt.theme);renderAdmin();return}
+  renderHome();
+}
+
+function renderHome(){
+  applyPalette((hunt&&hunt.theme)||'halloween');
+  const cont = hunt && hunt.stations.length
+    ? `<button class="btn secondary" data-act="resume">↩︎ Reprendre ma chasse (${THEMES[hunt.theme].emoji} ${THEMES[hunt.theme].nom})</button>` : '';
+  app().innerHTML = `
+    <div class="stack" style="padding-top:8vh">
+      <div class="big-emoji">🗺️</div>
+      <h1 style="text-align:center">Chasse au Trésor</h1>
+      <p class="muted" style="text-align:center;margin-top:-4px">Boîtes à toucher, énigmes & carte au trésor. À toi de créer l'aventure.</p>
+      <div class="divider"></div>
+      <button class="btn" data-act="new">🪄 Créer une chasse (parent)</button>
+      ${cont}
+      <p class="muted" style="font-size:13px;text-align:center;margin-top:18px">Les enfants reçoivent le jeu en scannant un QR — chacun sur son téléphone.</p>
+    </div>`;
+}
+
+/* ---------- ADMIN ---------- */
+function renderAdmin(){
+  const T=THEMES[hunt.theme];
+  const themeChips = Object.entries(THEMES).map(([k,v])=>
+    `<button class="theme-chip" data-act="theme" data-k="${k}" aria-pressed="${k===hunt.theme}">
+       <span class="emo">${v.emoji}</span>${v.nom}</button>`).join('');
+
+  const stations = hunt.stations.map((s,i)=>`
+    <div class="station ${s._open?'':'collapsed'}">
+      <h3><span class="num">${i+1}</span> ${esc(s.titre)}
+        <button class="btn ghost small" style="margin-left:auto" data-act="toggle" data-i="${i}">${s._open?'▲':'▼'}</button>
+      </h3>
+      <div class="station-body">
+        <label class="field">Ce que la boîte fait semblant d'être
+          <input data-f="titre" data-i="${i}" value="${esc(s.titre)}"></label>
+        <label class="field">Le vrai objet à mettre dans la boîte <span class="hint">(secret parent — imprimé sur ta fiche)</span>
+          <input data-f="objet" data-i="${i}" value="${esc(s.objet)}"></label>
+        <label class="field">Ambiance (lu à voix haute)
+          <textarea data-f="histoire" data-i="${i}">${esc(s.histoire)}</textarea></label>
+        <label class="field">Énigme
+          <textarea data-f="enigme" data-i="${i}">${esc(s.enigme)}</textarea></label>
+        <label class="field">Code caché dans la boîte <span class="hint">(écris ce mot sur un jeton et glisse-le dans la boîte)</span>
+          <input data-f="code" data-i="${i}" value="${esc(s.code)}"></label>
+        <label class="field">Où la boîte est cachée <span class="hint">(ex : « près du grand chêne »)</span>
+          <input data-f="indiceLieu" data-i="${i}" value="${esc(s.indiceLieu||'')}" placeholder="Indice de lieu (optionnel)"></label>
+        <button class="btn ghost small" data-act="placeThis" data-i="${i}">📍 ${s.pin?'Déplacer':'Placer'} sur la carte</button>
+      </div>
+    </div>`).join('');
+
+  const pinBtns = hunt.stations.map((s,i)=>
+    `<button class="sbtn ${s.pin?'placed':''}" data-act="pickpin" data-i="${i}" aria-pressed="${i===activePin}">${i+1}</button>`).join('')
+    + `<button class="sbtn ${hunt.tresorPin?'placed':''}" data-act="picktreasure" aria-pressed="${activePin==='T'}" title="Trésor" style="width:auto;padding:0 10px">🏆 Trésor</button>`;
+
+  const pins = hunt.stations.filter(s=>s.pin).map((s,i)=>{
+    const idx=hunt.stations.indexOf(s);
+    return `<div class="pin ${idx===activePin?'target':''}" style="left:${s.pin.x}%;top:${s.pin.y}%">${idx+1}</div>`;
+  }).join('')
+  + (hunt.tresorPin?`<div class="pin treasure ${activePin==='T'?'target':''}" style="left:${hunt.tresorPin.x}%;top:${hunt.tresorPin.y}%">🏆</div>`:'');
+
+  app().innerHTML = `
+    <div class="row" style="align-items:center;margin-bottom:6px">
+      <button class="btn ghost small" style="flex:none" data-act="home">← Accueil</button>
+      <span class="pill" style="flex:none">Mode parent</span>
+    </div>
+    <h2 class="title-spooky" data-theme="${hunt.theme}">${T.emoji} Créer la chasse</h2>
+
+    <div class="card" style="margin-top:14px">
+      <span class="kicker">1 · Thème</span>
+      <div class="theme-grid" style="margin-top:10px">${themeChips}</div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <span class="kicker">2 · Réglages</span>
+      <label class="field">Prénom de l'enfant fêté
+        <input data-f="enfant" value="${esc(hunt.enfant)}" placeholder="ex : Jade"></label>
+      <div class="row">
+        <div><label class="field">Nb d'épreuves
+          <select data-f="nb">${[3,4,5,6,7,8].map(n=>`<option value="${n}" ${n==hunt.nb?'selected':''}>${n}</option>`).join('')}</select></label></div>
+        <div><label class="field">Âge des enfants
+          <select data-f="age">
+            <option value="petits" ${hunt.age=='petits'?'selected':''}>Petits (3-6)</option>
+            <option value="moyens" ${hunt.age=='moyens'?'selected':''}>Moyens (7-9)</option>
+            <option value="grands" ${hunt.age=='grands'?'selected':''}>Grands (10+)</option>
+          </select></label></div>
+      </div>
+      <label class="field">Le trésor final
+        <input data-f="tresor" value="${esc(hunt.tresor)}"></label>
+      <label class="field">Où le trésor est caché <span class="hint">(le dernier indice révélé à la fin — ex : « dans le coffre sous le lit »)</span>
+        <input data-f="tresorLieu" value="${esc(hunt.tresorLieu||'')}" placeholder="Cachette du trésor (optionnel)"></label>
+      <button class="btn accent2" style="margin-top:14px" data-act="generate">🎲 Générer les épreuves automatiquement</button>
+    </div>
+
+    ${hunt.stations.length?`
+    <div class="card" style="margin-top:14px">
+      <span class="kicker">3 · Les épreuves</span>
+      <p class="muted" style="font-size:13px">Tout est modifiable. Regénère autant que tu veux.</p>
+      ${stations}
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <span class="kicker">4 · La carte</span>
+      <p class="muted" style="font-size:13px">Choisis une épreuve, puis tape sur la carte pour poser sa punaise. Le tracé se dessine tout seul.</p>
+      <div class="stationbtns">${pinBtns}</div>
+      <div class="map-wrap" data-act="mapclick">
+        ${mapBg(hunt.theme)}
+        ${trailSvg(hunt.stations)}
+        <div class="pins">${pins}</div>
+        <div class="map-place-hint">📍 À poser : ${activePin==='T'?'le trésor 🏆':'épreuve '+(activePin+1)}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <span class="kicker">5 · Envoyer aux enfants</span>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn" data-act="qr">📲 Créer le QR & le lien de jeu</button>
+        <button class="btn secondary" data-act="print">🖨️ Imprimer ma fiche de préparation</button>
+        <div class="row">
+          <button class="btn secondary small" data-act="export">💾 Exporter</button>
+          <button class="btn secondary small" data-act="import">📂 Importer</button>
+          <button class="btn secondary small" data-act="testplay">👀 Tester le jeu</button>
+        </div>
+        <button class="btn ghost small" data-act="reset">🗑️ Tout effacer</button>
+      </div>
+    </div>`:''}
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <div style="height:30px"></div>`;
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/* ---------- QR / LIEN ---------- */
+function showQR(){
+  const url=playURL();
+  const long = url.length>1600;
+  const modal=document.createElement('div');
+  modal.className='card';modal.style.cssText='position:fixed;inset:14px;top:auto;bottom:14px;max-width:560px;margin:0 auto;z-index:30;max-height:88dvh;overflow:auto';
+  modal.innerHTML=`
+    <div class="row" style="align-items:center"><h2 style="flex:1">📲 Lien de jeu</h2>
+      <button class="btn ghost small" style="flex:none" data-act="closeqr">✕</button></div>
+    <p class="muted" style="font-size:13px">Chaque enfant scanne ce QR (ou ouvre le lien) sur son téléphone. Il faut une connexion pour charger la page la première fois.</p>
+    <div id="qrslot" class="qr-box">${window.QRCode?'':'<p style="color:#000">QR indisponible — utilise le lien ci-dessous.</p>'}</div>
+    ${long?'<p class="muted" style="font-size:12px;margin-top:8px">⚠️ Chasse un peu longue : si le QR ne scanne pas, envoie le lien directement.</p>':''}
+    <label class="field">Lien</label>
+    <div class="linkfield" id="linktxt">${esc(url)}</div>
+    <button class="btn small" style="margin-top:10px" data-act="copylink" data-url="${esc(url)}">📋 Copier le lien</button>`;
+  document.body.appendChild(modal);
+  if(window.QRCode){
+    try{ qrObj=new QRCode(document.getElementById('qrslot'),{text:url,width:300,height:300,correctLevel:QRCode.CorrectLevel.L}); }
+    catch(e){ document.getElementById('qrslot').innerHTML='<p style="color:#000">QR trop long — utilise le lien.</p>'; }
+  }
+}
+
+/* ---------- IMPRESSION ---------- */
+function doPrint(){
+  const T=THEMES[hunt.theme];
+  const pins=hunt.stations.filter(s=>s.pin).map(s=>{const i=hunt.stations.indexOf(s);
+    return `<div class="pin" style="position:absolute;left:${s.pin.x}%;top:${s.pin.y}%;transform:translate(-50%,-100%);width:22px;height:22px;background:#000;color:#fff;border-radius:50% 50% 50% 2px;display:grid;place-items:center;font-weight:700;font-size:12px">${i+1}</div>`}).join('')
+    +(hunt.tresorPin?`<div style="position:absolute;left:${hunt.tresorPin.x}%;top:${hunt.tresorPin.y}%;transform:translate(-50%,-100%);font-size:20px">🏆</div>`:'');
+  const cards=hunt.stations.map((s,i)=>`
+    <div class="pcard">
+      <h3>Épreuve ${i+1} — ${esc(s.titre)}</h3>
+      <div><span class="k">À mettre dans la boîte :</span> ${esc(s.objet)}</div>
+      <div><span class="k">Code à cacher (sur un jeton) :</span> ${esc(s.code)||'—'}</div>
+      <div><span class="k">Où cacher la boîte :</span> ${esc(s.indiceLieu)||'(à toi de voir)'}</div>
+    </div>`).join('');
+  document.getElementById('print').innerHTML=`
+    <h2 style="font-family:Fredoka">${T.emoji} Chasse au trésor — fiche parent</h2>
+    <p><b>Enfant :</b> ${esc(hunt.enfant)||'—'} &nbsp; <b>Trésor final :</b> ${esc(hunt.tresor)}</p>
+    ${hunt.tresorLieu?`<p><b>Trésor caché :</b> ${esc(hunt.tresorLieu)} 🏆</p>`:''}
+    <p style="font-size:13px">Pour chaque épreuve : remplis la boîte à toucher avec l'objet, écris le code sur un petit papier caché dedans, et planque la boîte à l'endroit prévu.</p>
+    ${cards}
+    <h3 style="font-family:Fredoka;margin-top:16px">Plan des cachettes</h3>
+    <div class="pmap">${mapBg(hunt.theme)}${trailSvg(hunt.stations)}<div class="pins" style="position:absolute;inset:0">${pins}</div></div>`;
+  window.print();
+}
+
+/* ---------- EXPORT / IMPORT ---------- */
+function exportHunt(){
+  const blob=new Blob([JSON.stringify(hunt,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='chasse-'+(hunt.enfant||'tresor').toLowerCase().replace(/\s+/g,'-')+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+}
+function importHunt(file){
+  const r=new FileReader();
+  r.onload=()=>{try{const h=JSON.parse(r.result);if(h&&h.theme&&h.stations){hunt=h;activePin=0;save();render();toast('Chasse importée ✅')}else toast('Fichier invalide')}catch(e){toast('Fichier illisible')}};
+  r.readAsText(file);
+}
+
+/* ---------- JEU ---------- */
+function startPlay(cfg){
+  play={cfg,step:-1,done:[]};
+  // reprise éventuelle
+  try{const r=localStorage.getItem('ct_play_'+cfg.id);if(r){const s=JSON.parse(r);play.step=s.step;play.done=s.done||[];play.tfound=s.tfound||false}}catch(e){}
+  applyPalette(cfg.theme);view='play';render();
+}
+function savePlay(){try{localStorage.setItem('ct_play_'+play.cfg.id,JSON.stringify({step:play.step,done:play.done,tfound:play.tfound}))}catch(e){}}
+
+function renderPlay(){
+  const c=play.cfg,T=THEMES[c.theme];
+  applyPalette(c.theme);
+  // INTRO
+  if(play.step<0){
+    app().innerHTML=`<div class="screen stack">
+      <div style="height:6vh"></div>
+      <div class="big-emoji">${T.emoji}</div>
+      <h1 class="title-spooky" data-theme="${c.theme}" style="text-align:center">${T.nom==='Halloween'?'La Nuit des Énigmes':'La Chasse au Trésor'}</h1>
+      ${c.enfant?`<p class="muted" style="text-align:center;margin-top:-4px">Pour l'anniversaire de ${esc(c.enfant)} 🎉</p>`:''}
+      <p class="ambiance card">${esc(T.intro)}</p>
+      <div class="spacer"></div>
+      <button class="btn" data-act="pstart">🚀 Commencer l'aventure</button>
+    </div>`;return;
+  }
+  // FIN
+  if(play.step>=c.stations.length){
+    const hasLoc = c.tresorLieu || c.tresorPin;
+    if(hasLoc && !play.tfound){
+      app().innerHTML=`<div class="screen stack" style="text-align:center">
+        <div style="height:4vh"></div>
+        <div class="big-emoji">🗺️</div>
+        <h2 class="title-spooky" data-theme="${c.theme}">Dernière énigme résolue !</h2>
+        <p class="ambiance">Plus qu'à trouver le trésor... ${c.tresorLieu?`Il est caché <b>${esc(c.tresorLieu)}</b>.`:'Suis la carte, la coupe montre l\'endroit !'}</p>
+        ${c.tresorPin?`<div class="map-wrap">${mapBg(c.theme)}${trailSvg(c.stations)}
+          <div class="pins">${c.stations.map((st,k)=>st.pin?`<div class="pin ghost" style="left:${st.pin.x}%;top:${st.pin.y}%">${k+1}</div>`:'').join('')}<div class="pin treasure target" style="left:${c.tresorPin.x}%;top:${c.tresorPin.y}%">🏆</div></div></div>`:''}
+        <div class="spacer"></div>
+        <button class="btn" data-act="tfound">🏆 On a trouvé le trésor !</button>
+      </div>`;return;
+    }
+    burst();
+    app().innerHTML=`<div class="screen stack" style="text-align:center">
+      <div style="height:8vh"></div>
+      <div class="big-emoji" style="font-size:88px">🏆</div>
+      <h1 class="title-spooky" data-theme="${c.theme}">Trésor trouvé !</h1>
+      <p class="ambiance">Bravo ${esc(c.enfant)||'aventurier'} ! Vous avez réussi toutes les épreuves et découvert <b>${esc(c.tresor)}</b>.</p>
+      <div class="spacer"></div>
+      <button class="btn secondary" data-act="preplay">↻ Rejouer</button>
+    </div>`;return;
+  }
+  // ÉPREUVE
+  const i=play.step, s=c.stations[i];
+  const petits=c.age==='petits', grands=c.age==='grands';
+  const hasHint = s.pin || s.indiceLieu;
+  app().innerHTML=`<div class="screen">
+    <div class="row" style="align-items:center"><span class="pill" style="flex:none">Épreuve ${i+1} / ${c.stations.length}</span></div>
+    <div class="progress"><i style="width:${(i)/c.stations.length*100}%"></i></div>
+    <h2 class="title-spooky" data-theme="${c.theme}">${T.emoji} Boîte mystère n°${i+1}</h2>
+    <p class="ambiance">${esc(s.histoire)}</p>
+    <p class="box-cta">✋ Plonge la main dans la boîte...</p>
+    <div class="enigme">${esc(s.enigme)}</div>
+
+    ${hasHint?`<button class="btn ghost small" style="margin-top:12px" data-act="toggleHint">🗺️ Besoin d'un indice ?</button>
+      <div id="hintbox" style="display:none">
+        ${s.indiceLieu?`<p class="muted" style="text-align:center">La boîte est cachée <b>${esc(s.indiceLieu)}</b>.</p>`:''}
+        ${s.pin?`<div class="map-wrap">${mapBg(c.theme)}${trailSvg(c.stations,i)}
+          <div class="pins">${c.stations.map((st,k)=>st.pin?`<div class="pin ${k===i?'target':'ghost'}" style="left:${st.pin.x}%;top:${st.pin.y}%">${k+1}</div>`:'').join('')}</div></div>`:''}
+      </div>`:''}
+
+    <div class="spacer"></div>
+
+    ${petits?`
+      <p class="muted" style="text-align:center;font-size:13px">Trouvé le jeton dans la boîte ?</p>
+      <button class="btn" data-act="found">✅ On l'a trouvé !</button>
+      <details style="margin-top:8px"><summary class="muted" style="font-size:13px;text-align:center;list-style:none;cursor:pointer">🔒 entrer le code secret</summary>
+        <div class="row" style="margin-top:8px"><input id="codein" placeholder="Le mot du jeton" autocapitalize="characters">
+        <button class="btn small" style="flex:none" data-act="checkcode">OK</button></div></details>
+    `:`
+      <label class="field">Entre le code trouvé dans la boîte</label>
+      <div class="row"><input id="codein" placeholder="Le mot caché dans la boîte" autocapitalize="characters" autocomplete="off">
+      <button class="btn" style="flex:none;width:auto" data-act="checkcode">Valider</button></div>
+      ${grands?'':'<button class="btn ghost small" data-act="found" style="margin-top:6px">Passer cette épreuve (parent)</button>'}
+      ${grands?'<button class="btn ghost small" data-act="found" style="margin-top:6px">Passer (parent)</button>':''}
+    `}
+  </div>`;
+  const inp=document.getElementById('codein');
+  if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkCode()});
+}
+function nextStep(){play.done.push(play.step);play.step++;savePlay();render();window.scrollTo(0,0)}
+function checkCode(){
+  const inp=document.getElementById('codein');if(!inp)return;
+  const s=play.cfg.stations[play.step];
+  if(norm(inp.value)===norm(s.code)&&norm(s.code)!==''){toast('Bravo ! C\'était : '+s.titre+' 🎉');setTimeout(nextStep,350)}
+  else{const scr=document.querySelector('.screen');scr&&scr.classList.add('shake');setTimeout(()=>scr&&scr.classList.remove('shake'),450);toast('Essaie encore 👻')}
+}
+
+/* ---------- effets ---------- */
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1600)}
+let _confirmCb=null;
+function showConfirm(msg,cb){
+  _confirmCb=cb;
+  const m=document.createElement('div');m.id='confirmModal';m.className='card';
+  m.style.cssText='position:fixed;left:14px;right:14px;bottom:14px;max-width:560px;margin:0 auto;z-index:40;box-shadow:0 -8px 40px rgba(0,0,0,.5)';
+  m.innerHTML='<p style="font-weight:800;margin:0 0 12px">'+esc(msg)+'</p><div class="row"><button class="btn secondary" data-act="confirmNo">Annuler</button><button class="btn" data-act="confirmYes">Oui, effacer</button></div>';
+  document.body.appendChild(m);
+}
+function burst(){
+  const emo=['🎉','⭐','🏆','✨','🎈','🍬'];const c=document.createElement('div');c.className='confetti';
+  for(let i=0;i<40;i++){const s=document.createElement('span');s.textContent=emo[i%emo.length];
+    s.style.left=Math.random()*100+'%';s.style.animationDuration=(2+Math.random()*2)+'s';s.style.animationDelay=(Math.random()*.6)+'s';c.appendChild(s)}
+  document.body.appendChild(c);setTimeout(()=>c.remove(),4200);
+}
+
+/* ============================== ÉVÉNEMENTS ============================== */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const act=el.dataset.act, i=+el.dataset.i;
+  switch(act){
+    case 'new': hunt=newHunt('halloween');activePin=0;save();view='admin';render();break;
+    case 'resume': view='admin';render();break;
+    case 'home': view='home';render();break;
+    case 'theme':{const k=el.dataset.k;hunt.theme=k;if(!hunt.tresor||Object.values(THEMES).some(t=>t.tresor===hunt.tresor))hunt.tresor=THEMES[k].tresor;hunt.stations=[];save();render();break}
+    case 'generate': if(!hunt.enfant){/*ok*/} generate(); if(hunt.stations[0])hunt.stations[0]._open=true; render();break;
+    case 'toggle': hunt.stations[i]._open=!hunt.stations[i]._open;render();break;
+    case 'pickpin': activePin=i;render();break;
+    case 'picktreasure': activePin='T';render();break;
+    case 'placeThis': activePin=i;render();setTimeout(()=>document.querySelector('.map-wrap')?.scrollIntoView({behavior:'smooth',block:'center'}),50);break;
+    case 'mapclick':{
+      const wrap=el;const r=wrap.getBoundingClientRect();
+      const x=Math.max(3,Math.min(97,(e.clientX-r.left)/r.width*100));
+      const y=Math.max(4,Math.min(96,(e.clientY-r.top)/r.height*100));
+      if(activePin==='T'){hunt.tresorPin={x:+x.toFixed(1),y:+y.toFixed(1)};save();render()}
+      else if(hunt.stations[activePin]){hunt.stations[activePin].pin={x:+x.toFixed(1),y:+y.toFixed(1)};
+        if(activePin<hunt.stations.length-1)activePin++;save();render()}
+      break;}
+    case 'qr': showQR();break;
+    case 'closeqr': e.target.closest('.card').remove();break;
+    case 'copylink': navigator.clipboard?.writeText(el.dataset.url).then(()=>toast('Lien copié 📋'),()=>toast('Copie impossible'));break;
+    case 'print': doPrint();break;
+    case 'export': exportHunt();break;
+    case 'import': document.getElementById('importFile').click();break;
+    case 'testplay': startPlay(huntPlayCfg());break;
+    case 'reset': showConfirm('Effacer toute la chasse ? (impossible à annuler)',()=>{hunt=null;try{localStorage.removeItem(LS)}catch(e){}view='home';render();toast('Chasse effacée 🗑️')});break;
+    case 'confirmYes':{const m=document.getElementById('confirmModal');if(m)m.remove();const cb=_confirmCb;_confirmCb=null;if(cb)cb();break}
+    case 'confirmNo':{const m=document.getElementById('confirmModal');if(m)m.remove();_confirmCb=null;break}
+    // JEU
+    case 'pstart': play.step=0;savePlay();render();window.scrollTo(0,0);break;
+    case 'found': nextStep();break;
+    case 'checkcode': checkCode();break;
+    case 'toggleHint':{const h=document.getElementById('hintbox');if(h)h.style.display=h.style.display==='none'?'block':'none';break}
+    case 'preplay': play.step=-1;play.done=[];play.tfound=false;savePlay();render();break;
+    case 'tfound': play.tfound=true;savePlay();render();break;
+  }
+});
+document.addEventListener('input',e=>{
+  const el=e.target.closest('[data-f]');if(!el||!hunt)return;
+  const f=el.dataset.f, i=el.dataset.i;
+  if(i!==undefined){hunt.stations[+i][f]=el.value}
+  else{hunt[f]= (f==='nb')?+el.value:el.value}
+  save();
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.id==='importFile'&&el.files[0]){importHunt(el.files[0]);return}
+  const fe=el.closest('[data-f]');
+  if(fe&&(fe.dataset.f==='theme'||fe.dataset.f==='nb'||fe.dataset.f==='age')){/* selects re-render via input already saved */ render()}
+});
+
+/* ============================== BOOT ============================== */
+function boot(){
+  let payload=null;
+  const h=location.hash;
+  if(h.startsWith('#j=')) payload=h.slice(3);
+  else { const m=location.search.match(/[?&]j=([^&]+)/); if(m) payload=decodeURIComponent(m[1]); }
+  if(payload){
+    const cfg=decodeCfg(payload);
+    if(cfg){startPlay(cfg);return}
+  }
+  hunt=load();
+  view='home';render();
+}
+// laisse les libs cdnjs se charger si possible
+window.addEventListener('load',boot);
+</script>
+</body>
+</html>
